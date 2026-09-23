@@ -1,0 +1,28 @@
+# Maven build folders
+**/target/
+
+# VS Code settings
+**/.vscode/
+
+# IntelliJ IDEA
+**/.idea/
+**/*.iml
+
+# Eclipse
+**/.classpath
+**/.project
+**/.settings/
+
+# Environment and secret files
+**/.env
+**/.env.*
+**/application-local.properties
+**/application-secret.properties
+
+# Log files
+**/*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini

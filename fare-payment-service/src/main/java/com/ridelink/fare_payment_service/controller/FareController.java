@@ -35,7 +35,7 @@ public class FareController {
 	}
 
 	@PostMapping("/{id}/finalize")
-	@Operation(summary = "Finalize a fare", description = "Recalculates the fare with the actual distance (optional query param distanceKm) and sets status to CONFIRMED. Returns 404 if the fare does not exist and 409 if it was already finalized - both with the standard error body.")
+	@Operation(summary = "Finalize a fare", description = "Sets the final distance (precedence: distanceKm query param, then the ACTUAL distance fetched from ride-management via synchronous REST by rideId, then the estimated distance as fallback) and recalculates the amount with the documented rule. The fare's distanceSource field records which source was used (REQUEST / RIDE_MANAGEMENT / ESTIMATE). Returns 404 if the fare does not exist and 409 if it was already finalized - both with the standard error body.")
 	public ResponseEntity<Fare> finalizeFare(@PathVariable String id,
 			@RequestParam(name = "distanceKm", required = false) Double actualDistanceKm) {
 		return ResponseEntity.ok(fareService.finalizeFare(id, actualDistanceKm));

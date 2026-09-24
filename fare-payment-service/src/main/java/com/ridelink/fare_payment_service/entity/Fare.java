@@ -11,6 +11,11 @@ public class Fare {
 	public static final String STATUS_ESTIMATED = "ESTIMATED";
 	public static final String STATUS_CONFIRMED = "CONFIRMED";
 
+	/** Where the distance used for the fare came from (see distanceSource field). */
+	public static final String SOURCE_REQUEST = "REQUEST";
+	public static final String SOURCE_RIDE_MANAGEMENT = "RIDE_MANAGEMENT";
+	public static final String SOURCE_ESTIMATE = "ESTIMATE";
+
 	@Id
 	private String id;
 	private String rideId;
@@ -19,6 +24,7 @@ public class Fare {
 	private Double distanceKm;
 	private BigDecimal amount;
 	private String status;
+	private String distanceSource;
 
 	public Fare() {
 	}
@@ -83,5 +89,18 @@ public class Fare {
 
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	/**
+	 * Which source supplied the distance of this fare:
+	 * REQUEST (client input), RIDE_MANAGEMENT (actual distance of the
+	 * completed ride) or ESTIMATE (fallback when ride-management is down).
+	 */
+	public String getDistanceSource() {
+		return distanceSource;
+	}
+
+	public void setDistanceSource(String distanceSource) {
+		this.distanceSource = distanceSource;
 	}
 }

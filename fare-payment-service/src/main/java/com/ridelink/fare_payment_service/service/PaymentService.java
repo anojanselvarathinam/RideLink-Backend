@@ -3,27 +3,29 @@ package com.ridelink.fare_payment_service.service;
 import com.ridelink.fare_payment_service.dto.PaymentRequest;
 import com.ridelink.fare_payment_service.entity.Fare;
 import com.ridelink.fare_payment_service.entity.Payment;
+import com.ridelink.fare_payment_service.exception.ConflictException;
+import com.ridelink.fare_payment_service.exception.ResourceNotFoundException;
+import com.ridelink.fare_payment_service.exception.ValidationException;
 import com.ridelink.fare_payment_service.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 public class PaymentService {
 
-	public static final Set<String> VALID_METHODS = Set.of("CASH", "CARD", "WALLET");
-
 	private final PaymentRepository paymentRepository;
 	private final PaymentSimulator paymentSimulator;
 	private final ReceiptService receiptService;
+	private final FareService fareService;
 
 	public PaymentService(PaymentRepository paymentRepository, PaymentSimulator paymentSimulator,
-			ReceiptService receiptService) {
+			ReceiptService receiptService, FareService fareService) {
 		this.paymentRepository = paymentRepository;
 		this.paymentSimulator = paymentSimulator;
 		this.receiptService = receiptService;
+		this.fareService = fareService;
 	}
 
 	/**
@@ -31,8 +33,25 @@ public class PaymentService {
 	 *
 	 * Lifecycle: PENDING -> COMPLETED (gateway approved, receipt issued)
 	 *         or PENDING -> FAILED    (gateway declined, no receipt)
+	 *
+	 * (fareId/amount/method field validation happens in the controller via @Valid.)
+	 *
+	 * @throws ResourceNotFoundException fare does not exist
+	 * @throws ConflictException         fare is not CONFIRMED yet
+	 * @throws ValidationException       amount does not match the fare
 	 */
-	public Payment processPayment(PaymentRequest request, Fare fare) {
+	public Payment processPayment(PaymentRequest request) {
+		Fare fare = fareService.findById(request.getFareId())
+			.orElseThrow(() -> new ResourceNotFoundException(
+				"Fare not found: " + request.getFareId()));
+		if (!Fare.STATUS_CONFIRMED.equals(fare.getStatus())) {
+			throw new ConflictException("Fare must be finalized (CONFIRMED) before payment");
+		}
+		if (request.getAmount().compareTo(fare.getAmount()) != 0) {
+			throw new ValidationException(
+				"amount must match the confirmed fare amount of LKR " + fare.getAmount());
+		}
+
 		Payment payment = new Payment();
 		payment.setFareId(fare.getId());
 		payment.setAmount(request.getAmount());

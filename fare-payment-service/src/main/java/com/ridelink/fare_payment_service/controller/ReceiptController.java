@@ -1,6 +1,7 @@
 package com.ridelink.fare_payment_service.controller;
 
 import com.ridelink.fare_payment_service.entity.Receipt;
+import com.ridelink.fare_payment_service.exception.ResourceNotFoundException;
 import com.ridelink.fare_payment_service.service.ReceiptService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
@@ -35,11 +36,20 @@ public class ReceiptController {
 		return receiptService.findAll();
 	}
 
+	@GetMapping("/{id}")
+	@Operation(summary = "Get a receipt by id", description = "Returns 404 with the standard error body if the receipt does not exist.")
+	public ResponseEntity<Receipt> getReceiptById(@PathVariable String id) {
+		Receipt receipt = receiptService.findById(id)
+			.orElseThrow(() -> new ResourceNotFoundException("Receipt not found: " + id));
+		return ResponseEntity.ok(receipt);
+	}
+
 	@GetMapping("/payment/{paymentId}")
-	@Operation(summary = "Get the receipt of a payment", description = "Returns the automatically generated receipt for the given payment id. Returns 404 if the payment has no receipt (e.g. the payment FAILED).")
+	@Operation(summary = "Get the receipt of a payment", description = "Returns the automatically generated receipt for the given payment id. Returns 404 with the standard error body if the payment has no receipt (e.g. the payment FAILED).")
 	public ResponseEntity<Receipt> getReceiptByPaymentId(@PathVariable String paymentId) {
-		return receiptService.findByPaymentId(paymentId)
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
+		Receipt receipt = receiptService.findByPaymentId(paymentId)
+			.orElseThrow(() -> new ResourceNotFoundException(
+				"No receipt for payment: " + paymentId));
+		return ResponseEntity.ok(receipt);
 	}
 }

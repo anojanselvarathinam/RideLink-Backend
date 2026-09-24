@@ -8,6 +8,10 @@ import java.math.BigDecimal;
 @Document(collection = "payments")
 public class Payment {
 
+	public static final String STATUS_PENDING = "PENDING";
+	public static final String STATUS_COMPLETED = "COMPLETED";
+	public static final String STATUS_FAILED = "FAILED";
+
 	@Id
 	private String id;
 	private String fareId;

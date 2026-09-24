@@ -19,9 +19,7 @@ public class ReceiptService {
 		this.receiptRepository = receiptRepository;
 	}
 
-	/**
-	 * Generates a receipt automatically for an approved (COMPLETED) payment.
-	 */
+	/** Generates a receipt automatically for an approved (COMPLETED) payment. No manual creation endpoint exists (receipts cannot be forged). */
 	public Receipt issue(Payment payment, Fare fare) {
 		Receipt receipt = new Receipt();
 		receipt.setPaymentId(payment.getId());
@@ -29,13 +27,6 @@ public class ReceiptService {
 		receipt.setDetails(String.format("Ride %s | %s -> %s | %s payment of LKR %s",
 			fare.getRideId(), fare.getPickupLocation(), fare.getDestinationLocation(),
 			payment.getMethod(), payment.getAmount()));
-		return receiptRepository.save(receipt);
-	}
-
-	public Receipt create(Receipt receipt) {
-		if (receipt.getIssuedAt() == null) {
-			receipt.setIssuedAt(Instant.now());
-		}
 		return receiptRepository.save(receipt);
 	}
 

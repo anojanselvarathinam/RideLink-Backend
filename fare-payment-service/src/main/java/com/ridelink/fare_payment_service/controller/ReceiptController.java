@@ -4,17 +4,20 @@ import com.ridelink.fare_payment_service.entity.Receipt;
 import com.ridelink.fare_payment_service.exception.ResourceNotFoundException;
 import com.ridelink.fare_payment_service.service.ReceiptService;
 import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Receipts are ISSUED automatically by a successful payment
+ * (see PaymentService/ReceiptService) - there is deliberately no creation
+ * endpoint, so receipts cannot be forged manually. This controller only
+ * exposes retrieval.
+ */
 @RestController
 @RequestMapping("/receipts")
 public class ReceiptController {
@@ -23,12 +26,6 @@ public class ReceiptController {
 
 	public ReceiptController(ReceiptService receiptService) {
 		this.receiptService = receiptService;
-	}
-
-	@PostMapping
-	public ResponseEntity<Receipt> createReceipt(@RequestBody Receipt receipt) {
-		Receipt created = receiptService.create(receipt);
-		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
 
 	@GetMapping

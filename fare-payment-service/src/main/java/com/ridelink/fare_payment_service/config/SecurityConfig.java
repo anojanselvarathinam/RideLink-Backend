@@ -37,10 +37,11 @@ import java.util.List;
  * POST /fares/estimate      -> PASSENGER, DRIVER, ADMIN  (quoting a price)
  * POST /fares/{id}/finalize -> DRIVER, ADMIN             (driver/ops confirms the final fare)
  * POST /payments            -> PASSENGER, ADMIN          (the passenger pays)
- * POST /receipts            -> ADMIN                     (manual receipt creation)
  * all other endpoints (reads) -> any authenticated role
  * Swagger UI / OpenAPI docs    -> public (keeps the API discoverable)
  * </pre>
+ * Receipts have NO creation endpoint: they are issued automatically by a
+ * successful payment, so they cannot be forged manually.
  * Missing/invalid/expired/wrongly-signed tokens -> 401, wrong role -> 403,
  * both with the same uniform error body as the rest of the API
  * (see SecurityErrorHandlers).
@@ -62,8 +63,6 @@ public class SecurityConfig {
 					.hasAnyRole("DRIVER", "ADMIN")
 				.requestMatchers(HttpMethod.POST, "/payments")
 					.hasAnyRole("PASSENGER", "ADMIN")
-				.requestMatchers(HttpMethod.POST, "/receipts")
-					.hasRole("ADMIN")
 				.anyRequest().authenticated())
 			.oauth2ResourceServer(oauth2 -> oauth2
 				.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))

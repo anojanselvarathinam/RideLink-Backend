@@ -71,7 +71,9 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.5.0</version>
+			<!-- 3.1.1 = same version as account-service; required for Spring Framework 7
+			     (2.5.0 crashes with NoSuchMethodError once a @RestControllerAdvice exists) -->
+			<version>3.1.1</version>
 		</dependency>
 	</dependencies>
 

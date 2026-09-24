@@ -8,9 +8,15 @@ import java.math.BigDecimal;
 @Document(collection = "fares")
 public class Fare {
 
+	public static final String STATUS_ESTIMATED = "ESTIMATED";
+	public static final String STATUS_CONFIRMED = "CONFIRMED";
+
 	@Id
 	private String id;
 	private String rideId;
+	private String pickupLocation;
+	private String destinationLocation;
+	private Double distanceKm;
 	private BigDecimal amount;
 	private String status;
 
@@ -37,6 +43,30 @@ public class Fare {
 
 	public void setRideId(String rideId) {
 		this.rideId = rideId;
+	}
+
+	public String getPickupLocation() {
+		return pickupLocation;
+	}
+
+	public void setPickupLocation(String pickupLocation) {
+		this.pickupLocation = pickupLocation;
+	}
+
+	public String getDestinationLocation() {
+		return destinationLocation;
+	}
+
+	public void setDestinationLocation(String destinationLocation) {
+		this.destinationLocation = destinationLocation;
+	}
+
+	public Double getDistanceKm() {
+		return distanceKm;
+	}
+
+	public void setDistanceKm(Double distanceKm) {
+		this.distanceKm = distanceKm;
 	}
 
 	public BigDecimal getAmount() {

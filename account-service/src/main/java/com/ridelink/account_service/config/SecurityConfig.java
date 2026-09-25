@@ -9,12 +9,14 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import com.ridelink.account_service.service.JwtService;
+import com.ridelink.account_service.repository.UserRepository;
 
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService,
+            UserRepository userRepository)
             throws Exception {
 
         http
@@ -39,7 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/accounts/me", "/api/accounts/me/password").authenticated()
                 .anyRequest().permitAll()
             )
-            .addFilterBefore(new JwtAuthenticationFilter(jwtService),
+            .addFilterBefore(new JwtAuthenticationFilter(jwtService, userRepository),
                     UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

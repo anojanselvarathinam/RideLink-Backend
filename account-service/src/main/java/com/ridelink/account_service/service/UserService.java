@@ -5,6 +5,7 @@ import com.ridelink.account_service.dto.LoginRequest;
 import com.ridelink.account_service.dto.LoginResponse;
 import com.ridelink.account_service.dto.UserResponse;
 import com.ridelink.account_service.dto.UpdateProfileRequest;
+import com.ridelink.account_service.dto.UpdateAccountStatusRequest;
 import com.ridelink.account_service.dto.ChangePasswordRequest;
 import com.ridelink.account_service.dto.MessageResponse;
 import com.ridelink.account_service.entity.AccountStatus;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.util.NoSuchElementException;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Locale;
 
 @Service
 public class UserService {
@@ -47,6 +49,39 @@ public class UserService {
         }
 
         return responses;
+    }
+
+    public UserResponse getPassengerOrDriverAccount(String accountId) {
+        User user = userRepository.findById(accountId)
+                .orElseThrow(() -> new NoSuchElementException("Account not found"));
+
+        if (user.getRole() != Role.PASSENGER && user.getRole() != Role.DRIVER) {
+            throw new AccessDeniedException("Only Passenger or Driver accounts can be returned");
+        }
+
+        return new UserResponse(user);
+    }
+
+    public UserResponse updateAccountStatus(String accountId, UpdateAccountStatusRequest request) {
+        if (request.getStatus() == null) {
+            throw new IllegalArgumentException("Status must be ACTIVE or BLOCKED");
+        }
+
+        String status = request.getStatus().trim().toUpperCase(Locale.ROOT);
+        if (!"ACTIVE".equals(status) && !"BLOCKED".equals(status)) {
+            throw new IllegalArgumentException("Status must be ACTIVE or BLOCKED");
+        }
+
+        User user = userRepository.findById(accountId)
+                .orElseThrow(() -> new NoSuchElementException("Account not found"));
+
+        if (user.getRole() != Role.PASSENGER && user.getRole() != Role.DRIVER) {
+            throw new AccessDeniedException("Only Passenger or Driver account status can be changed");
+        }
+
+        user.setStatus(AccountStatus.valueOf(status));
+        User savedUser = userRepository.save(user);
+        return new UserResponse(savedUser);
     }
 
     public UserResponse getCurrentUser(String email) {

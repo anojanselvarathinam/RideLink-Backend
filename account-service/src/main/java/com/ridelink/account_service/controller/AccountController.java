@@ -5,12 +5,14 @@ import com.ridelink.account_service.dto.LoginRequest;
 import com.ridelink.account_service.dto.LoginResponse;
 import com.ridelink.account_service.dto.UserResponse;
 import com.ridelink.account_service.dto.UpdateProfileRequest;
+import com.ridelink.account_service.dto.UpdateAccountStatusRequest;
 import com.ridelink.account_service.dto.ChangePasswordRequest;
 import com.ridelink.account_service.dto.MessageResponse;
 import com.ridelink.account_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
@@ -31,6 +33,8 @@ import java.util.NoSuchElementException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
@@ -185,6 +189,59 @@ public class AccountController {
     @GetMapping("/admin/users")
     public ResponseEntity<List<UserResponse>> getPassengerAndDriverAccounts() {
         return ResponseEntity.ok(userService.getPassengerAndDriverAccounts());
+    }
+
+    @Operation(
+        summary = "Get a Passenger or Driver account by ID",
+        description = "Requires an ACTIVE ADMIN account and a valid JWT. " +
+                "Obtain accountId from GET /api/accounts/admin/users. " +
+                "Returns a Passenger or Driver profile regardless of the target account status. " +
+                "ADMIN accounts cannot be returned. Blocked or inactive callers receive HTTP 403.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Account returned successfully",
+            content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = UserResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid JWT", content = @Content),
+        @ApiResponse(responseCode = "403", description = "ADMIN role required or requested account is ADMIN",
+            content = @Content),
+        @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
+    })
+    @GetMapping("/admin/users/{accountId}")
+    public ResponseEntity<UserResponse> getPassengerOrDriverAccount(@PathVariable String accountId) {
+        return ResponseEntity.ok(userService.getPassengerOrDriverAccount(accountId));
+    }
+
+    @Operation(
+        summary = "Block or unblock a Passenger or Driver account",
+        description = "Requires an ADMIN JWT. Changes only the target account status. " +
+                "Accepts ACTIVE or BLOCKED case-insensitively; INACTIVE is not allowed. " +
+                "ADMIN accounts cannot be updated. Obtain accountId from GET /api/accounts/admin/users.",
+        security = @SecurityRequirement(name = "bearerAuth"),
+        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = UpdateAccountStatusRequest.class),
+                examples = {
+                    @ExampleObject(name = "Block account", value = "{\"status\":\"BLOCKED\"}"),
+                    @ExampleObject(name = "Unblock account", value = "{\"status\":\"ACTIVE\"}")
+                }))
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Account status updated successfully",
+            content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = UserResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid status", content = @Content),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid JWT", content = @Content),
+        @ApiResponse(responseCode = "403", description = "ADMIN role required or target is an ADMIN", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
+    })
+    @PatchMapping("/admin/users/{accountId}/status")
+    public ResponseEntity<UserResponse> updateAccountStatus(
+            @PathVariable String accountId,
+            @Valid @RequestBody UpdateAccountStatusRequest request) {
+        return ResponseEntity.ok(userService.updateAccountStatus(accountId, request));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

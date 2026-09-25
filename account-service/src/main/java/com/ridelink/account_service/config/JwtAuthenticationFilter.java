@@ -1,6 +1,9 @@
 package com.ridelink.account_service.config;
 
 import com.ridelink.account_service.service.JwtService;
+import com.ridelink.account_service.entity.AccountStatus;
+import com.ridelink.account_service.entity.User;
+import com.ridelink.account_service.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,9 +21,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -36,12 +41,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 if (jwtService.validateToken(token)) {
                     String email = jwtService.extractEmail(token);
-                    String role = jwtService.extractRole(token);
-                    List<SimpleGrantedAuthority> authorities = Collections.emptyList();
-                    if ("ADMIN".equals(role) || "PASSENGER".equals(role) || "DRIVER".equals(role)) {
-                        authorities = Collections.singletonList(
-                                new SimpleGrantedAuthority("ROLE_" + role));
+                    User user = userRepository.findByEmail(email).orElse(null);
+
+                    if (user == null) {
+                        SecurityContextHolder.clearContext();
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Missing or invalid JWT\"}");
+                        return;
                     }
+
+                    if (user.getStatus() != AccountStatus.ACTIVE) {
+                        SecurityContextHolder.clearContext();
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Account is not active\"}");
+                        return;
+                    }
+
+                    List<SimpleGrantedAuthority> authorities = Collections.singletonList(
+                            new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     email, null, authorities);

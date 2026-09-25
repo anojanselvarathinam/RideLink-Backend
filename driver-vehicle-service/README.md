@@ -49,3 +49,6 @@ Swagger UI: http://localhost:8082/swagger-ui.html
 
 ## Sample Data
 userId: 1, vehicleNumber: WP-CAB-1234, vehicleType: CAR, serviceArea: Jaffna
+
+---
+Last verified: MongoDB integration complete.

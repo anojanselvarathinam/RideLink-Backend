@@ -43,6 +43,10 @@ public class JwtService {
         return extractClaims(token).getSubject();
     }
 
+    public String extractRole(String token) {
+        return extractClaims(token).get("role", String.class);
+    }
+
     public boolean isTokenExpired(String token) {
         try {
             Date expiration = extractClaims(token).getExpiration();

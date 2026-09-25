@@ -35,7 +35,8 @@ public class SecurityConfig {
                     "/api/accounts/register",
                     "/api/accounts/login"
                 ).permitAll()
-                .requestMatchers("/api/accounts/me").authenticated()
+                .requestMatchers("/api/accounts/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/accounts/me", "/api/accounts/me/password").authenticated()
                 .anyRequest().permitAll()
             )
             .addFilterBefore(new JwtAuthenticationFilter(jwtService),

@@ -4,6 +4,9 @@ import com.ridelink.account_service.dto.RegisterRequest;
 import com.ridelink.account_service.dto.LoginRequest;
 import com.ridelink.account_service.dto.LoginResponse;
 import com.ridelink.account_service.dto.UserResponse;
+import com.ridelink.account_service.dto.UpdateProfileRequest;
+import com.ridelink.account_service.dto.ChangePasswordRequest;
+import com.ridelink.account_service.dto.MessageResponse;
 import com.ridelink.account_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,9 +25,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.List;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import java.util.NoSuchElementException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
@@ -116,6 +123,80 @@ public class AccountController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         return ResponseEntity.ok(userService.getCurrentUser(authentication.getName()));
+    }
+
+    @Operation(
+        summary = "Update the current account profile",
+        description = "Updates only the full name and phone number of the account " +
+                "identified by the JWT. Use Authorize to enter the token returned by login.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Profile updated successfully",
+            content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = UserResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid profile information", content = @Content),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid JWT", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
+    })
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateCurrentUser(
+            Authentication authentication,
+            @Valid @RequestBody UpdateProfileRequest request) {
+        UserResponse response = userService.updateCurrentUser(authentication.getName(), request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+        summary = "Change the current account password",
+        description = "Verifies the current password and changes only the password of the " +
+                "account identified by the JWT. The new password must contain at least 8 " +
+                "characters, including uppercase, lowercase, a number, and a special character.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Password changed successfully",
+            content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = MessageResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid new password or confirmation mismatch", content = @Content),
+        @ApiResponse(responseCode = "401", description = "Missing/invalid JWT or incorrect current password", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
+    })
+    @PutMapping("/me/password")
+    public ResponseEntity<MessageResponse> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        return ResponseEntity.ok(userService.changePassword(authentication.getName(), request));
+    }
+
+    @Operation(
+        summary = "List Passenger and Driver accounts",
+        description = "Requires an ADMIN JWT. Returns Passenger and Driver profiles only, " +
+                "or an empty array when no matching accounts exist.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Account list returned successfully",
+            content = @Content(mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = UserResponse.class)))),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid JWT", content = @Content),
+        @ApiResponse(responseCode = "403", description = "ADMIN role required", content = @Content)
+    })
+    @GetMapping("/admin/users")
+    public ResponseEntity<List<UserResponse>> getPassengerAndDriverAccounts() {
+        return ResponseEntity.ok(userService.getPassengerAndDriverAccounts());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handlePasswordValidation(
+            MethodArgumentNotValidException exception) throws MethodArgumentNotValidException {
+        if (!(exception.getBindingResult().getTarget() instanceof ChangePasswordRequest)) {
+            throw exception;
+        }
+
+        // Do not expose or log rejected password values from validation errors.
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "Invalid password information"));
     }
 
     @ExceptionHandler(NoSuchElementException.class)

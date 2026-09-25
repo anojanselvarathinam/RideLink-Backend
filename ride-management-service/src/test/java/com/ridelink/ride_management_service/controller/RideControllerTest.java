@@ -1,11 +1,11 @@
 package com.ridelink.ride_management_service.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,6 +19,7 @@ import com.ridelink.ride_management_service.dto.CreateRideRequest;
 import com.ridelink.ride_management_service.dto.LocationResponse;
 import com.ridelink.ride_management_service.dto.RideResponse;
 import com.ridelink.ride_management_service.entity.RideStatus;
+import com.ridelink.ride_management_service.exception.InvalidRideStateException;
 import com.ridelink.ride_management_service.exception.RideApiExceptionHandler;
 import com.ridelink.ride_management_service.exception.RideNotFoundException;
 import com.ridelink.ride_management_service.service.RideService;
@@ -162,6 +163,99 @@ class RideControllerTest {
 			.andExpect(jsonPath("$.error").value("INVALID_REQUEST"));
 	}
 
+	@Test
+	void assignDriverSuccessReturnsOk() throws Exception {
+		when(rideService.assignDriver(any(), any())).thenReturn(sampleResponse("ride-1", RideStatus.ASSIGNED));
+
+		mockMvc.perform(patch("/api/rides/ride-1/assign-driver")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"driverId\":\"D001\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("ASSIGNED"));
+	}
+
+	@Test
+	void assignDriverInvalidStateReturnsConflict() throws Exception {
+		when(rideService.assignDriver(any(), any()))
+			.thenThrow(new InvalidRideStateException("Invalid ride status transition from ASSIGNED to ASSIGNED"));
+
+		mockMvc.perform(patch("/api/rides/ride-1/assign-driver")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"driverId\":\"D001\"}"))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.error").value("INVALID_RIDE_STATE"));
+	}
+
+	@Test
+	void acceptSuccessReturnsOk() throws Exception {
+		when(rideService.acceptRide("ride-1")).thenReturn(sampleResponse("ride-1", RideStatus.ACCEPTED));
+
+		mockMvc.perform(patch("/api/rides/ride-1/accept"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("ACCEPTED"));
+	}
+
+	@Test
+	void startSuccessReturnsOk() throws Exception {
+		when(rideService.startRide("ride-1")).thenReturn(sampleResponse("ride-1", RideStatus.IN_PROGRESS));
+
+		mockMvc.perform(patch("/api/rides/ride-1/start"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+	}
+
+	@Test
+	void completeSuccessReturnsOk() throws Exception {
+		when(rideService.completeRide(any(), any())).thenReturn(sampleResponse("ride-1", RideStatus.COMPLETED));
+
+		mockMvc.perform(patch("/api/rides/ride-1/complete")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"actualDistance\":8.5}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("COMPLETED"))
+			.andExpect(jsonPath("$.actualDistance").value(8.5));
+	}
+
+	@Test
+	void cancelSuccessReturnsOk() throws Exception {
+		when(rideService.cancelRide(any(), any())).thenReturn(sampleResponse("ride-1", RideStatus.CANCELLED));
+
+		mockMvc.perform(patch("/api/rides/ride-1/cancel")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"reason\":\"Passenger changed plans\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("CANCELLED"));
+	}
+
+	@Test
+	void invalidLifecycleOperationReturnsConflict() throws Exception {
+		when(rideService.startRide("ride-1"))
+			.thenThrow(new InvalidRideStateException("Invalid ride status transition from REQUESTED to IN_PROGRESS"));
+
+		mockMvc.perform(patch("/api/rides/ride-1/start"))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.error").value("INVALID_RIDE_STATE"))
+			.andExpect(jsonPath("$.status").value(409));
+	}
+
+	@Test
+	void actionOnMissingRideReturnsNotFound() throws Exception {
+		when(rideService.startRide("missing")).thenThrow(new RideNotFoundException("missing"));
+
+		mockMvc.perform(patch("/api/rides/missing/start"))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.error").value("RIDE_NOT_FOUND"));
+	}
+
+	@Test
+	void lifecycleInvalidRequestBodyReturnsBadRequest() throws Exception {
+		mockMvc.perform(patch("/api/rides/ride-1/complete")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"actualDistance\":0}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+	}
+
 	private void assertBadCreateRequest(String json) throws Exception {
 		mockMvc.perform(post("/api/rides")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -191,24 +285,28 @@ class RideControllerTest {
 	}
 
 	private static RideResponse sampleResponse(String id) {
+		return sampleResponse(id, RideStatus.REQUESTED);
+	}
+
+	private static RideResponse sampleResponse(String id, RideStatus status) {
 		Instant requestedAt = Instant.parse("2026-09-25T04:00:00Z");
 		return new RideResponse(
 			id,
 			"P001",
-			null,
+			status == RideStatus.REQUESTED ? null : "D001",
 			new LocationResponse("Colombo Fort", 6.9344, 79.8428),
 			new LocationResponse("Bambalapitiya", 6.8936, 79.8563),
-			RideStatus.REQUESTED,
+			status,
 			new BigDecimal("350.00"),
 			null,
-			null,
-			null,
+			status == RideStatus.COMPLETED ? 8.5 : null,
+			status == RideStatus.CANCELLED ? "Passenger changed plans" : null,
 			requestedAt,
-			null,
-			null,
-			null,
-			null,
-			null,
+			status.ordinal() >= RideStatus.ASSIGNED.ordinal() ? requestedAt : null,
+			status.ordinal() >= RideStatus.ACCEPTED.ordinal() ? requestedAt : null,
+			status == RideStatus.IN_PROGRESS || status == RideStatus.COMPLETED ? requestedAt : null,
+			status == RideStatus.COMPLETED ? requestedAt : null,
+			status == RideStatus.CANCELLED ? requestedAt : null,
 			requestedAt,
 			requestedAt
 		);

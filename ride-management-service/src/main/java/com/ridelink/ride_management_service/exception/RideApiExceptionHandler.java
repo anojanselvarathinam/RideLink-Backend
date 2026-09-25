@@ -20,6 +20,11 @@ public class RideApiExceptionHandler {
 		return buildError(HttpStatus.NOT_FOUND, "RIDE_NOT_FOUND", exception.getMessage(), request);
 	}
 
+	@ExceptionHandler(InvalidRideStateException.class)
+	public ResponseEntity<ApiError> handleInvalidRideState(InvalidRideStateException exception, HttpServletRequest request) {
+		return buildError(HttpStatus.CONFLICT, "INVALID_RIDE_STATE", exception.getMessage(), request);
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException exception, HttpServletRequest request) {
 		String message = exception.getBindingResult()

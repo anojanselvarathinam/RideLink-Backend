@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.ridelink.ride_management_service.dto.CreateRideRequest;
+import com.ridelink.ride_management_service.dto.FareRideResponse;
 import com.ridelink.ride_management_service.dto.LocationResponse;
 import com.ridelink.ride_management_service.dto.RideResponse;
 import com.ridelink.ride_management_service.entity.RideStatus;
@@ -42,7 +43,7 @@ class RideControllerTest {
 		LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
 		validator.afterPropertiesSet();
 		mockMvc = MockMvcBuilders
-			.standaloneSetup(new RideController(rideService))
+			.standaloneSetup(new RideController(rideService), new FareRideCompatibilityController(rideService))
 			.setControllerAdvice(new RideApiExceptionHandler())
 			.setValidator(validator)
 			.build();
@@ -134,7 +135,30 @@ class RideControllerTest {
 		mockMvc.perform(get("/api/rides/ride-1"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.id").value("ride-1"))
-			.andExpect(jsonPath("$.status").value("REQUESTED"));
+			.andExpect(jsonPath("$.status").value("REQUESTED"))
+			.andExpect(jsonPath("$.actualDistance").doesNotExist());
+	}
+
+	@Test
+	void getCompletedFareRideReturnsRideIdStatusAndDistanceKm() throws Exception {
+		when(rideService.getFareRideById("ride-1"))
+			.thenReturn(new FareRideResponse("ride-1", RideStatus.COMPLETED, 8.5));
+
+		mockMvc.perform(get("/rides/ride-1"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.rideId").value("ride-1"))
+			.andExpect(jsonPath("$.status").value("COMPLETED"))
+			.andExpect(jsonPath("$.distanceKm").value(8.5));
+	}
+
+	@Test
+	void getMissingFareRideReturnsNotFound() throws Exception {
+		when(rideService.getFareRideById("missing")).thenThrow(new RideNotFoundException("missing"));
+
+		mockMvc.perform(get("/rides/missing"))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.error").value("RIDE_NOT_FOUND"))
+			.andExpect(jsonPath("$.status").value(404));
 	}
 
 	@Test

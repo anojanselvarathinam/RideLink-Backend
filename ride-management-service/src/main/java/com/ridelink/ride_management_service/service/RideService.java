@@ -7,6 +7,7 @@ import com.ridelink.ride_management_service.dto.AssignDriverRequest;
 import com.ridelink.ride_management_service.dto.CancelRideRequest;
 import com.ridelink.ride_management_service.dto.CompleteRideRequest;
 import com.ridelink.ride_management_service.dto.CreateRideRequest;
+import com.ridelink.ride_management_service.dto.FareRideResponse;
 import com.ridelink.ride_management_service.dto.RideMapper;
 import com.ridelink.ride_management_service.dto.RideResponse;
 import com.ridelink.ride_management_service.entity.Ride;
@@ -40,6 +41,10 @@ public class RideService {
 		return rideRepository.findById(rideId)
 			.map(RideMapper::toResponse)
 			.orElseThrow(() -> new RideNotFoundException(rideId));
+	}
+
+	public FareRideResponse getFareRideById(String rideId) {
+		return RideMapper.toFareResponse(findRideOrThrow(rideId));
 	}
 
 	public List<RideResponse> getRides(String passengerId, String driverId, RideStatus status) {

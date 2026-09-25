@@ -16,6 +16,7 @@ import com.ridelink.ride_management_service.dto.AssignDriverRequest;
 import com.ridelink.ride_management_service.dto.CancelRideRequest;
 import com.ridelink.ride_management_service.dto.CompleteRideRequest;
 import com.ridelink.ride_management_service.dto.CreateRideRequest;
+import com.ridelink.ride_management_service.dto.FareRideResponse;
 import com.ridelink.ride_management_service.dto.LocationRequest;
 import com.ridelink.ride_management_service.dto.RideResponse;
 import com.ridelink.ride_management_service.entity.Ride;
@@ -80,6 +81,28 @@ class RideServiceTest {
 
 		assertThat(response.id()).isEqualTo("ride-1");
 		assertThat(response.passengerId()).isEqualTo("P001");
+	}
+
+	@Test
+	void retrievesFareRideProjectionById() {
+		Ride ride = sampleRide("ride-1", "P001", "D001", RideStatus.COMPLETED);
+		ride.setActualDistance(8.5);
+		when(rideRepository.findById("ride-1")).thenReturn(Optional.of(ride));
+
+		FareRideResponse response = rideService.getFareRideById("ride-1");
+
+		assertThat(response.rideId()).isEqualTo("ride-1");
+		assertThat(response.status()).isEqualTo(RideStatus.COMPLETED);
+		assertThat(response.distanceKm()).isEqualTo(8.5);
+	}
+
+	@Test
+	void missingFareRideProjectionThrowsException() {
+		when(rideRepository.findById("missing")).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> rideService.getFareRideById("missing"))
+			.isInstanceOf(RideNotFoundException.class)
+			.hasMessageContaining("missing");
 	}
 
 	@Test

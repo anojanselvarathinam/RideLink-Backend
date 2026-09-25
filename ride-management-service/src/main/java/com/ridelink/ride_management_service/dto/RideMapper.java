@@ -31,6 +31,14 @@ public final class RideMapper {
 		);
 	}
 
+	public static FareRideResponse toFareResponse(Ride ride) {
+		return new FareRideResponse(
+			ride.getId(),
+			ride.getStatus(),
+			ride.getActualDistance()
+		);
+	}
+
 	public static RideLocation toLocation(LocationRequest request) {
 		return new RideLocation(request.placeName(), request.latitude(), request.longitude());
 	}

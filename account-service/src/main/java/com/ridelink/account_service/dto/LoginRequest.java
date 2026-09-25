@@ -1,13 +1,13 @@
 package com.ridelink.account_service.dto;
 
-import jakarta.validation.constraints.Email;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 public class LoginRequest {
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Enter a valid email address")
-    private String email;
+    @Schema(description = "Registered email address or username", example = "Admin")
+    @NotBlank(message = "Email or username is required")
+    private String identifier;
 
     @NotBlank(message = "Password is required")
     private String password;
@@ -15,12 +15,12 @@ public class LoginRequest {
     public LoginRequest() {
     }
 
-    public String getEmail() {
-        return email;
+    public String getIdentifier() {
+        return identifier;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
     }
 
     public String getPassword() {

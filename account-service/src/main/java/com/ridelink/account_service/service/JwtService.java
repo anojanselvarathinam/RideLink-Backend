@@ -1,6 +1,8 @@
 package com.ridelink.account_service.service;
 
 import java.util.Date;
+import java.util.Base64;
+import java.util.Set;
 
 import javax.crypto.SecretKey;
 
@@ -13,7 +15,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 @Service
@@ -26,7 +27,7 @@ public class JwtService {
             @Value("${app.jwt.secret}") String jwtSecret,
             @Value("${app.jwt.expiration-ms}") long expirationMilliseconds) {
 
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        byte[] keyBytes = Base64.getDecoder().decode(jwtSecret);
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMilliseconds = expirationMilliseconds;
     }
@@ -34,6 +35,7 @@ public class JwtService {
     private Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
+                .sig().clear().add(Jwts.SIG.HS256).and()
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -62,6 +64,8 @@ public class JwtService {
             String email = claims.getSubject();
             Date expiration = claims.getExpiration();
             return email != null && !email.isBlank()
+                    && claims.get("role") instanceof String role
+                    && Set.of("ADMIN", "PASSENGER", "DRIVER").contains(role)
                     && expiration != null && expiration.after(new Date());
         } catch (JwtException | IllegalArgumentException exception) {
             return false;
@@ -78,7 +82,7 @@ public class JwtService {
                 .claim("role", user.getRole().name())
                 .issuedAt(issuedAt)
                 .expiration(expiresAt)
-                .signWith(signingKey)
+                .signWith(signingKey, Jwts.SIG.HS256)
                 .compact();
     }
 }

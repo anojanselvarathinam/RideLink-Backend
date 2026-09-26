@@ -45,6 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     if (user == null) {
                         SecurityContextHolder.clearContext();
+                        if ("PATCH".equals(request.getMethod())
+                                && (request.getContextPath() + "/api/accounts/me/deactivate")
+                                        .equals(request.getRequestURI())) {
+                            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Account not found\"}");
+                            return;
+                        }
                         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         response.setContentType("application/json");
                         response.getWriter().write("{\"error\":\"Missing or invalid JWT\"}");

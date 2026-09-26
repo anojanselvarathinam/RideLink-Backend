@@ -8,6 +8,7 @@ import com.ridelink.account_service.dto.UpdateProfileRequest;
 import com.ridelink.account_service.dto.UpdateAccountStatusRequest;
 import com.ridelink.account_service.dto.ChangePasswordRequest;
 import com.ridelink.account_service.dto.MessageResponse;
+import com.ridelink.account_service.dto.DeactivateAccountRequest;
 import com.ridelink.account_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -174,6 +175,30 @@ public class AccountController {
     }
 
     @Operation(
+        summary = "Deactivate the current account",
+        description = "Confirms the current password and sets the authenticated Passenger or Driver " +
+                "account to INACTIVE. ADMIN accounts cannot deactivate themselves. " +
+                "Inactive accounts cannot log in or use their JWT until an Admin reactivates them.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Account deactivated successfully",
+            content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = MessageResponse.class),
+                examples = @ExampleObject(value = "{\"message\":\"Account deactivated successfully\"}"))),
+        @ApiResponse(responseCode = "400", description = "Password is blank", content = @Content),
+        @ApiResponse(responseCode = "401", description = "Missing/invalid JWT or incorrect password", content = @Content),
+        @ApiResponse(responseCode = "403", description = "Operation is not allowed: ADMIN, blocked or inactive account", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
+    })
+    @PatchMapping("/me/deactivate")
+    public ResponseEntity<MessageResponse> deactivateCurrentUser(
+            Authentication authentication,
+            @Valid @RequestBody DeactivateAccountRequest request) {
+        return ResponseEntity.ok(userService.deactivateCurrentUser(authentication.getName(), request));
+    }
+
+    @Operation(
         summary = "List Passenger and Driver accounts",
         description = "Requires an ADMIN JWT. Returns Passenger and Driver profiles only, " +
                 "or an empty array when no matching accounts exist.",
@@ -247,6 +272,9 @@ public class AccountController {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handlePasswordValidation(
             MethodArgumentNotValidException exception) throws MethodArgumentNotValidException {
+        if (exception.getBindingResult().getTarget() instanceof DeactivateAccountRequest) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Password is required"));
+        }
         if (!(exception.getBindingResult().getTarget() instanceof ChangePasswordRequest)) {
             throw exception;
         }

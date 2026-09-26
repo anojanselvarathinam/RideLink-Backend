@@ -8,6 +8,7 @@ import com.ridelink.account_service.dto.UpdateProfileRequest;
 import com.ridelink.account_service.dto.UpdateAccountStatusRequest;
 import com.ridelink.account_service.dto.ChangePasswordRequest;
 import com.ridelink.account_service.dto.MessageResponse;
+import com.ridelink.account_service.dto.DeactivateAccountRequest;
 import com.ridelink.account_service.entity.AccountStatus;
 import com.ridelink.account_service.entity.Role;
 import com.ridelink.account_service.entity.User;
@@ -129,6 +130,27 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         return new MessageResponse("Password changed successfully");
+    }
+
+    public MessageResponse deactivateCurrentUser(String email, DeactivateAccountRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("Account not found"));
+
+        if (user.getRole() != Role.PASSENGER && user.getRole() != Role.DRIVER) {
+            throw new AccessDeniedException("Only Passenger or Driver accounts can deactivate themselves");
+        }
+
+        if (user.getStatus() != AccountStatus.ACTIVE) {
+            throw new AccessDeniedException("Account is not active");
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Current password is incorrect");
+        }
+
+        user.setStatus(AccountStatus.INACTIVE);
+        userRepository.save(user);
+        return new MessageResponse("Account deactivated successfully");
     }
 
     public LoginResponse loginUser(LoginRequest request) {

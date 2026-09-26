@@ -1,0 +1,680 @@
+{
+  "info": {
+    "_postman_id": "e2309a72-6a75-4116-8e65-df253bfc7d9a",
+    "name": "RideLink",
+    "description": "Ride Management Service evidence collection.\n\nSetup:\n1. Start MongoDB.\n2. Start ride-management-service.\n3. Import this collection and the RideLink Local environment.\n4. Select the environment.\n5. Run the Ride Management / Happy Path folder in order.\n\nBase URL: {{rideBaseUrl}}\nLocal default: http://localhost:8082\n\nNo secrets are required or stored in this collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ride Management",
+      "item": [
+        {
+          "name": "Happy Path",
+          "description": "Run these requests in order for the standard create, assign, accept, start, complete, and fare compatibility flow. The cancel request is an alternate happy path and prepares its own cancellable ride.",
+          "item": [
+            {
+              "name": "Create Ride",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 201\", function () {",
+                      "  pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "const body = pm.response.json();",
+                      "",
+                      "pm.test(\"ride status is REQUESTED\", function () {",
+                      "  pm.expect(body.status).to.eql(\"REQUESTED\");",
+                      "});",
+                      "",
+                      "pm.test(\"driverId is null\", function () {",
+                      "  pm.expect(body.driverId).to.eql(null);",
+                      "});",
+                      "",
+                      "pm.test(\"ride id is returned\", function () {",
+                      "  pm.expect(body.id).to.be.a(\"string\").and.not.empty;",
+                      "});",
+                      "",
+                      "pm.environment.set(\"rideId\", body.id);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"passengerId\": \"P001\",\n  \"pickup\": {\n    \"placeName\": \"Colombo Fort\",\n    \"latitude\": 6.9344,\n    \"longitude\": 79.8428\n  },\n  \"destination\": {\n    \"placeName\": \"Bambalapitiya\",\n    \"latitude\": 6.8936,\n    \"longitude\": 79.8563\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Ride By ID",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "const body = pm.response.json();",
+                      "",
+                      "pm.test(\"returned ride matches environment rideId\", function () {",
+                      "  pm.expect(body.id).to.eql(pm.environment.get(\"rideId\"));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get All Rides",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test(\"response is an array\", function () {",
+                      "  pm.expect(pm.response.json()).to.be.an(\"array\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Assign Driver",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "const body = pm.response.json();",
+                      "",
+                      "pm.test(\"ride status is ASSIGNED\", function () {",
+                      "  pm.expect(body.status).to.eql(\"ASSIGNED\");",
+                      "});",
+                      "",
+                      "pm.test(\"driverId matches environment\", function () {",
+                      "  pm.expect(body.driverId).to.eql(pm.environment.get(\"driverId\"));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"driverId\": \"{{driverId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}/assign-driver",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}",
+                    "assign-driver"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Accept Ride",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test(\"ride status is ACCEPTED\", function () {",
+                      "  pm.expect(pm.response.json().status).to.eql(\"ACCEPTED\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}/accept",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}",
+                    "accept"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Start Ride",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test(\"ride status is IN_PROGRESS\", function () {",
+                      "  pm.expect(pm.response.json().status).to.eql(\"IN_PROGRESS\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}/start",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}",
+                    "start"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Complete Ride",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "const body = pm.response.json();",
+                      "",
+                      "pm.test(\"ride status is COMPLETED\", function () {",
+                      "  pm.expect(body.status).to.eql(\"COMPLETED\");",
+                      "});",
+                      "",
+                      "pm.test(\"actualDistance is returned\", function () {",
+                      "  pm.expect(body.actualDistance).to.eql(8.5);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"actualDistance\": 8.5\n}"
+                },
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}/complete",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}",
+                    "complete"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Fare Compatibility",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "const body = pm.response.json();",
+                      "",
+                      "pm.test(\"ride status is COMPLETED\", function () {",
+                      "  pm.expect(body.status).to.eql(\"COMPLETED\");",
+                      "});",
+                      "",
+                      "pm.test(\"distanceKm maps completed actual distance\", function () {",
+                      "  pm.expect(body.distanceKm).to.eql(8.5);",
+                      "});",
+                      "",
+                      "pm.test(\"rideId matches environment rideId\", function () {",
+                      "  pm.expect(body.rideId).to.eql(pm.environment.get(\"rideId\"));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{rideBaseUrl}}/rides/{{rideId}}",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "rides",
+                    "{{rideId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Cancel Ride",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const baseUrl = pm.environment.get(\"rideBaseUrl\");",
+                      "",
+                      "pm.sendRequest({",
+                      "  url: `${baseUrl}/api/rides`,",
+                      "  method: \"POST\",",
+                      "  header: { \"Content-Type\": \"application/json\" },",
+                      "  body: {",
+                      "    mode: \"raw\",",
+                      "    raw: JSON.stringify({",
+                      "      passengerId: \"P-CANCEL\",",
+                      "      pickup: { placeName: \"Colombo Fort\", latitude: 6.9344, longitude: 79.8428 },",
+                      "      destination: { placeName: \"Bambalapitiya\", latitude: 6.8936, longitude: 79.8563 }",
+                      "    })",
+                      "  }",
+                      "}, function (err, res) {",
+                      "  if (err) { throw err; }",
+                      "  pm.environment.set(\"rideId\", res.json().id);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 200\", function () {",
+                      "  pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test(\"ride status is CANCELLED\", function () {",
+                      "  pm.expect(pm.response.json().status).to.eql(\"CANCELLED\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Passenger changed plans\"\n}"
+                },
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}/cancel",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}",
+                    "cancel"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative Scenarios",
+          "description": "Repeatable negative checks. Requests that need a specific ride state prepare their own ride in a pre-request script.",
+          "item": [
+            {
+              "name": "Missing passengerId",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 400\", function () {",
+                      "  pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"validation error returned\", function () {",
+                      "  pm.expect(pm.response.json().error).to.eql(\"VALIDATION_ERROR\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pickup\": {\n    \"placeName\": \"Colombo Fort\",\n    \"latitude\": 6.9344,\n    \"longitude\": 79.8428\n  },\n  \"destination\": {\n    \"placeName\": \"Bambalapitiya\",\n    \"latitude\": 6.8936,\n    \"longitude\": 79.8563\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Start REQUESTED ride",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const baseUrl = pm.environment.get(\"rideBaseUrl\");",
+                      "",
+                      "pm.sendRequest({",
+                      "  url: `${baseUrl}/api/rides`,",
+                      "  method: \"POST\",",
+                      "  header: { \"Content-Type\": \"application/json\" },",
+                      "  body: {",
+                      "    mode: \"raw\",",
+                      "    raw: JSON.stringify({",
+                      "      passengerId: \"P-NEG-START\",",
+                      "      pickup: { placeName: \"Colombo Fort\", latitude: 6.9344, longitude: 79.8428 },",
+                      "      destination: { placeName: \"Bambalapitiya\", latitude: 6.8936, longitude: 79.8563 }",
+                      "    })",
+                      "  }",
+                      "}, function (err, res) {",
+                      "  if (err) { throw err; }",
+                      "  pm.environment.set(\"rideId\", res.json().id);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 409\", function () {",
+                      "  pm.response.to.have.status(409);",
+                      "});",
+                      "",
+                      "pm.test(\"invalid ride state error returned\", function () {",
+                      "  pm.expect(pm.response.json().error).to.eql(\"INVALID_RIDE_STATE\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}/start",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}",
+                    "start"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Missing ride ID",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 404\", function () {",
+                      "  pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test(\"ride not found error returned\", function () {",
+                      "  pm.expect(pm.response.json().error).to.eql(\"RIDE_NOT_FOUND\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/missing-ride-id",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "missing-ride-id"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Invalid cancellation state",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const baseUrl = pm.environment.get(\"rideBaseUrl\");",
+                      "const driverId = pm.environment.get(\"driverId\") || \"D001\";",
+                      "",
+                      "pm.sendRequest({",
+                      "  url: `${baseUrl}/api/rides`,",
+                      "  method: \"POST\",",
+                      "  header: { \"Content-Type\": \"application/json\" },",
+                      "  body: {",
+                      "    mode: \"raw\",",
+                      "    raw: JSON.stringify({",
+                      "      passengerId: \"P-NEG-CANCEL\",",
+                      "      pickup: { placeName: \"Colombo Fort\", latitude: 6.9344, longitude: 79.8428 },",
+                      "      destination: { placeName: \"Bambalapitiya\", latitude: 6.8936, longitude: 79.8563 }",
+                      "    })",
+                      "  }",
+                      "}, function (createErr, createRes) {",
+                      "  if (createErr) { throw createErr; }",
+                      "  const rideId = createRes.json().id;",
+                      "  pm.environment.set(\"rideId\", rideId);",
+                      "",
+                      "  pm.sendRequest({",
+                      "    url: `${baseUrl}/api/rides/${rideId}/assign-driver`,",
+                      "    method: \"PATCH\",",
+                      "    header: { \"Content-Type\": \"application/json\" },",
+                      "    body: { mode: \"raw\", raw: JSON.stringify({ driverId }) }",
+                      "  }, function (assignErr) {",
+                      "    if (assignErr) { throw assignErr; }",
+                      "",
+                      "    pm.sendRequest({",
+                      "      url: `${baseUrl}/api/rides/${rideId}/accept`,",
+                      "      method: \"PATCH\"",
+                      "    }, function (acceptErr) {",
+                      "      if (acceptErr) { throw acceptErr; }",
+                      "",
+                      "      pm.sendRequest({",
+                      "        url: `${baseUrl}/api/rides/${rideId}/start`,",
+                      "        method: \"PATCH\"",
+                      "      }, function (startErr) {",
+                      "        if (startErr) { throw startErr; }",
+                      "      });",
+                      "    });",
+                      "  });",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"status is 409\", function () {",
+                      "  pm.response.to.have.status(409);",
+                      "});",
+                      "",
+                      "pm.test(\"invalid ride state error returned\", function () {",
+                      "  pm.expect(pm.response.json().error).to.eql(\"INVALID_RIDE_STATE\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Too late to cancel\"\n}"
+                },
+                "url": {
+                  "raw": "{{rideBaseUrl}}/api/rides/{{rideId}}/cancel",
+                  "host": [
+                    "{{rideBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rides",
+                    "{{rideId}}",
+                    "cancel"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": []
+}

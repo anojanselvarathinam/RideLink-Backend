@@ -23,6 +23,8 @@ class FarePaymentServiceApplicationTests {
 		byte[] key = new byte[32];
 		new SecureRandom().nextBytes(key);
 		registry.add("RIDELINK_JWT_SECRET", () -> Base64.getEncoder().encodeToString(key));
+		// Never auto-open the Swagger browser tab from the test suite / CI.
+		registry.add("ridelink.swagger.auto-open", () -> "false");
 	}
 
 	@Test

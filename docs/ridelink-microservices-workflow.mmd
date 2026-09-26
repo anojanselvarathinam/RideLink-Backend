@@ -1,0 +1,57 @@
+flowchart LR
+  %% Master system workflow. Solid = implemented; dashed = expected/configured but absent.
+
+  subgraph Users["Clients and operators"]
+    direction TB
+    Passenger["Passenger<br/>estimates fares and pays"]
+    Driver["Driver / operations<br/>estimates and finalizes fares"]
+    Reader["Any authenticated reader<br/>reads fares, payments, receipts"]
+    Docs["API explorer / docs user<br/>no token required"]
+  end
+
+  subgraph Services["RideLink microservices"]
+    direction TB
+    Account["<b>Account service</b> — :8081<br/>SCAFFOLD: no login or JWT endpoints<br/>security currently permits all<br/>JDBC + JPA configured for MySQL"]
+    Ride["<b>Ride Management service</b><br/>caller expects :8082<br/>repository default: :8080<br/>SCAFFOLD: no endpoints<br/>MySQL driver declared only"]
+    DriverVehicle["<b>Driver & Vehicle service</b><br/>repository default: :8080<br/>SCAFFOLD: no endpoints<br/>JPA + MySQL dependencies only"]
+    Fare["<b>Fare & Payment service</b> — repository default: :8080<br/><b>Implemented REST workflow</b><br/>POST /fares/estimate · POST /fares/&#123;id&#125;/finalize · POST /payments<br/>GET /fares · /payments · /receipts<br/><br/>Stateless HS256 JWT roles: PASSENGER | DRIVER | ADMIN<br/>Uniform errors: 400/401/403/404/405/415/500"]
+  end
+
+  subgraph Stores["Configured persistence"]
+    direction TB
+    Mongo[("MongoDB — ridelink_fare_payment_db<br/>fares · payments · receipts<br/>local default or RIDELINK_MONGODB_URI")]
+    AccountDB[("MySQL — ridelink_account_db<br/>configured, no domain code")]
+    RideDB[("MySQL — not configured<br/>no domain code")]
+    DriverDB[("MySQL — not configured<br/>no domain code")]
+  end
+
+  %% Implemented client workflows
+  Passenger -->|"estimate + pay<br/>Bearer JWT"| Fare
+  Driver -->|"estimate + finalize<br/>Bearer JWT"| Fare
+  Reader -->|"reads<br/>Bearer JWT"| Fare
+  Docs -->|"/v3/api-docs/** and /swagger-ui/**<br/>public"| Fare
+
+  %% Expected token-issuer boundary — neither arrow exists in code
+  Users -.->|"login and HS256 JWT issuance expected; absent"| Account
+  Account -.->|"same shared secret expected on fare service; issuer absent"| Fare
+
+  %% Only implemented cross-service call
+  Fare -->|"synchronous GET /rides/&#123;rideId&#125;<br/>no auth token forwarded; failures fall back"| Ride
+
+  %% Implemented persistence
+  Fare -->|"fares / payments / receipts"| Mongo
+
+  %% Scaffolded-module infrastructure declarations
+  Account -.->|"JDBC + Hibernate ddl-auto=update"| AccountDB
+  Ride -.->|"driver dependency only"| RideDB
+  DriverVehicle -.->|"dependencies only"| DriverDB
+
+  classDef actor fill:#e8f1ff,stroke:#2563eb,color:#0f172a;
+  classDef implemented fill:#e8f8ee,stroke:#16803c,color:#0f172a;
+  classDef store fill:#fff4d6,stroke:#b7791f,color:#0f172a;
+  classDef scaffold fill:#f1f5f9,stroke:#64748b,color:#334155,stroke-dasharray:6 4;
+
+  class Passenger,Driver,Reader,Docs actor;
+  class Fare implemented;
+  class Mongo store;
+  class Account,Ride,DriverVehicle,AccountDB,RideDB,DriverDB scaffold;

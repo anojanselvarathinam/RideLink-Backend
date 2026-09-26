@@ -38,6 +38,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- OAuth2 resource server: validates JWTs issued by account-service (HS256),
+		     maps the "roles" claim to PASSENGER/DRIVER/ADMIN authorities -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
@@ -66,6 +72,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<!-- 3.1.1 = same version as account-service; required for Spring Framework 7
+			     (2.5.0 crashes with NoSuchMethodError once a @RestControllerAdvice exists) -->
+			<version>3.1.1</version>
 		</dependency>
 	</dependencies>
 
